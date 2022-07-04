@@ -1,6 +1,6 @@
 """This module implements a custom Dataset for synthetic images generated
-for the CIFAR-10 dataset, along with the input noise vectors used by the
-corresponding generator.
+for the CIFAR-10 dataset and their labels, along with the input noise vectors 
+used by the corresponding generator.
 
 We assume the following structure for the dataset directory:
 - class_0
@@ -28,8 +28,8 @@ class FakeCIFAR10(Dataset):
     """Fake CIFAR-10 images dataset.
 
     This class implements a dataset for synthetic images generated for 
-    the CIFAR-10 dataset, along with the input noise vectors used by the
-    corresponding generator.
+    the CIFAR-10 dataset and their labels, along with the input noise vectors 
+    used by the corresponding generator.
 
     Args:
         - dataset (str) : path to the dataset directory
@@ -59,16 +59,25 @@ class FakeCIFAR10(Dataset):
         """Return the length of the dataset."""
         return len(self.images)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(
+            self,
+            idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Return a sample of the dataset.
 
-        Each sample consists of a synthetic CIFAR-10 image, along with the
-        random noise vector used as input in the corresponding generator.
+        Each sample consists of a synthetic CIFAR-10 image and its label, along 
+        with the random noise vector used as input in the corresponding 
+        generator.
         """
-        image_path = str(self.images[idx])
+        filepath = self.images[idx]
 
-        _id = self.images[idx].stem.split("_")[1]
-        noise_path = str(self.images[idx].with_stem(
+        image_path = str(filepath)
+
+        _class = int(filepath.parent.name.split("_")[-1])
+        label = torch.zeros([10])
+        label[_class] = 1
+
+        _id = filepath.stem.split("_")[1]
+        noise_path = str(filepath.with_stem(
             f"noise_{_id}").with_suffix(".pt"))
 
         image = read_image(image_path).float()
@@ -77,4 +86,4 @@ class FakeCIFAR10(Dataset):
         if self.transform:
             image = self.transform(image)
 
-        return noise, image
+        return noise, image, label
