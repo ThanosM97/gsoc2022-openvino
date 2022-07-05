@@ -6,7 +6,9 @@ for the class condition. It generates a 32x32 image using both residual blocks
 and upsample blocks. 
 
 The Discriminator takes as input images, and their corresponding conditions
-(labels), and validates their authenticity.
+(labels), and validates their authenticity. In addition, it returns a list
+of features for the input images, obtained from the initial four
+convolutional blocks.
 """
 import torch
 from torch import nn
@@ -175,7 +177,9 @@ class Discriminator(nn.Module):
     """Discriminator class.
 
     The Discriminator takes as input images, and their corresponding conditions
-    (labels), and validates their authenticity.
+    (labels), and validates their authenticity. In addition, it returns a list
+    of features for the input images, obtained from the initial four
+    convolutional blocks.
 
     Args:
     - ndf (int) : number of discriminator filters
@@ -213,24 +217,28 @@ class Discriminator(nn.Module):
 
     def define_module(self) -> None:
         """Define the Discriminator module."""
-        self.netD = nn.Sequential(
-            # input is nc x 32 x 32
-            self.conv4x4(self.nc, self.ndf),  # ndf x 16 x 16
-            nn.BatchNorm2d(num_features=self.ndf),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        self.netD = [
+            nn.Sequential(
+                # input is nc x 32 x 32
+                self.conv4x4(self.nc, self.ndf),  # ndf x 16 x 16
+                nn.BatchNorm2d(num_features=self.ndf),
+                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
-            self.conv4x4(self.ndf, self.ndf),  # ndf x 8 x 8
-            nn.BatchNorm2d(num_features=self.ndf),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Sequential(
+                self.conv4x4(self.ndf, self.ndf),  # ndf x 8 x 8
+                nn.BatchNorm2d(num_features=self.ndf),
+                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
-            self.conv4x4(self.ndf, self.ndf * 2),  # 2ndf x 4 x 4
-            nn.BatchNorm2d(num_features=self.ndf * 2),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Sequential(
+                self.conv4x4(self.ndf, self.ndf * 2),  # 2ndf x 4 x 4
+                nn.BatchNorm2d(num_features=self.ndf * 2),
+                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
-            self.conv4x4(self.ndf * 2, self.ndf * 4),  # 4ndf x 2 x 2
-            nn.BatchNorm2d(num_features=self.ndf * 4),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        )
+            nn.Sequential(
+                self.conv4x4(self.ndf * 2, self.ndf * 4),  # 4ndf x 2 x 2
+                nn.BatchNorm2d(num_features=self.ndf * 4),
+                nn.LeakyReLU(negative_slope=0.2, inplace=True))
+        ]
 
         self.project = nn.Sequential(
             nn.Linear(self.c_dim, self.project_dim * 2, bias=False),
@@ -261,11 +269,14 @@ class Discriminator(nn.Module):
             - x (Tensor) : input image
             - c (Tensor) : condition (one-hot encoding)
         """
-        x = self.netD(x)
+        features = []
+        for block in self.netD:
+            x = block(x)
+            features.append(x)
 
         h = self.project(c).view(-1, self.project_dim, 1, 1)
         h = h.repeat(1, 1, 2, 2)
 
         h = torch.cat((h, x), 1)
 
-        return self.output(h)
+        return self.output(h), features
