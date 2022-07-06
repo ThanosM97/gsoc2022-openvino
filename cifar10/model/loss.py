@@ -42,6 +42,8 @@ Both adversarial losses are calculated using the hinge version
 
 More information about the two losses can be found in Chang et al. (2020).
 """
+from typing import Tuple
+
 import torch
 from torch import nn
 
@@ -98,8 +100,9 @@ class GLoss(nn.Module):
 
     def forward(
             self, xs: torch.Tensor, xt: torch.Tensor,
-            sfeatures: list[torch.Tensor], tfeatures: list[torch.Tensor],
-            dloss: torch.Tensor, dloss_random: torch.Tensor) -> torch.Tensor:
+            sfeatures: "list[torch.Tensor]", tfeatures: "list[torch.Tensor]",
+            dis_student: torch.Tensor = None, dis_random: torch.Tensor = None
+    ) -> "Tuple[torch.Tensor, dict]":
         """Calculate the total Generator loss.
 
         Args:
@@ -113,35 +116,51 @@ class GLoss(nn.Module):
             tfeatures (list[Tensor]) : list of extracted features from the
                                        discriminator for the fake generated
                                        image by the teacher network
-            dloss (Tensor) : the discriminator's output for the fake generated
-                             image by the student network from distillation
-            dloss_random (Tensor) : the discriminator's output for the fake 
-                                    generated image by the student network 
-                                    from a random input noise vector
+            dis_student (Tensor, optional) : the discriminator's output for the 
+                                             fake generated image by the 
+                                             student network from distillation
+                                             (Default: None)
+            dis_random (Tensor, optional) : the discriminator's output for the 
+                                            fake generated image by the student 
+                                            network from a random input noise 
+                                            vector (Default: None)
         """
+        # Initialize log for the losses
+        log = {}
+
         # Pixel-level distillation loss
         pixel_loss = self.criterion(xs, xt)
+        log["G/Pixel Loss"] = pixel_loss.item()
 
         # Feature-level distillation loss
         feature_loss = 0
         for i in range(len(sfeatures)):
             feature_loss += self.weights[i] * self.criterion(
                 sfeatures[i], tfeatures[i])
+        log["G/Feature Loss"] = feature_loss.item()
 
-        # Adversarial distillation loss
-        dloss = self.hinge(dloss)
+        if dis_student is not None and dis_random is not None:
+            # Adversarial distillation loss
+            dis_student = self.hinge(dis_student)
+            log["G/Adversarial Distillation Loss"] = dis_student.item()
 
-        # Adversarial GAN loss
-        dloss_random = self.hinge(dloss_random)
+            # Adversarial GAN loss
+            dis_random = self.hinge(dis_random)
+            log["G/Adversarial GAN Loss"] = dis_random.item()
 
-        total_loss = (
-            feature_loss + self.lambda1 * pixel_loss + self.lambda2 * dloss +
-            self.lambda3 * dloss_random)
+            total_loss = (
+                feature_loss + self.lambda1 * pixel_loss +
+                self.lambda2 * dis_student +
+                self.lambda3 * dis_random)
+            log["G/Total Loss"] = total_loss.item()
+        else:
+            total_loss = feature_loss + self.lambda1 * pixel_loss
+            log["G/Total Loss"] = total_loss.item()
 
         # Gradually decay the pixel-level distillation loss (lambda1) to zero
         self.lambda1 = max(0.00, self.lambda1-0.01)
 
-        return total_loss
+        return total_loss, log
 
 
 class DLoss(nn.Module):
@@ -172,41 +191,51 @@ class DLoss(nn.Module):
         self.lambda4 = lambda_gan
 
     def hinge(self,
-              dloss_real: torch.Tensor,
-              dloss_fake: torch.Tensor) -> torch.Tensor:
+              dis_real: torch.Tensor,
+              dis_fake: torch.Tensor) -> "Tuple[torch.Tensor, torch.Tensor]":
         """ Discriminator's hinge version of the adversarial loss.
 
         More information in https://arxiv.org/abs/1705.02894v2
         """
-        dloss_real = torch.mean(torch.relu(1. - dloss_real))
-        dloss_fake = torch.mean(torch.relu(1. + dloss_fake))
-        return dloss_real, dloss_fake
+        dis_real = torch.mean(torch.relu(1. - dis_real))
+        dis_fake = torch.mean(torch.relu(1. + dis_fake))
+        return dis_real, dis_fake
 
     def forward(self,
-                dloss_student: torch.Tensor, dloss_teacher: torch.Tensor,
-                dloss_random: torch.Tensor, dloss_real: torch.Tensor
-                ) -> torch.Tensor:
+                dis_student: torch.Tensor, dis_teacher: torch.Tensor,
+                dis_random: torch.Tensor, dis_real: torch.Tensor
+                ) -> "Tuple[torch.Tensor, dict]":
         """Calculate the total Discriminator loss.
 
         Args:
-            dloss_student (Tensor) : the discriminator's output for the fake 
-                                     generated image by the student network 
-                                     from distillation
-            dloss_teacher (Tensor) : the discriminator's output for the fake 
-                                     generated image by the teacher network 
-                                     from distillation
-            dloss_random (Tensor) : the discriminator's output for the fake 
-                                    generated image by the student network 
-                                    from a random input noise vector
-            dloss_real (Tensor) : the discriminator's output for the image
-                                  belonging in the distribution of the real 
-                                  data                                
+            dis_student (Tensor) : the discriminator's output for the fake 
+                                   generated image by the student network 
+                                   from distillation
+            dis_teacher (Tensor) : the discriminator's output for the fake 
+                                   generated image by the teacher network 
+                                   from distillation
+            dis_random (Tensor) : the discriminator's output for the fake 
+                                  generated image by the student network 
+                                  from a random input noise vector
+            dis_real (Tensor) : the discriminator's output for the image
+                                belonging in the distribution of the real 
+                                data                                
         """
+        # Initialize log for losses
+        log = {}
+
         # Hinge loss for the distillation pairs
-        dloss_teacher, dloss_student = self.hinge(dloss_teacher, dloss_student)
+        dis_teacher, dis_student = self.hinge(dis_teacher, dis_student)
+        log["D/Teacher Loss"] = dis_teacher.item()
+        log["D/Student Loss"] = dis_student.item()
 
         # Hinge loss for pairs of random generated and a real images
-        dloss_real, dloss_random = self.hinge(dloss_real, dloss_random)
+        dis_real, dis_random = self.hinge(dis_real, dis_random)
+        log["D/Real Loss"] = dis_real.item()
+        log["D/Random Loss"] = dis_random.item()
 
-        return dloss_teacher + dloss_student + self.lambda4 * (
-            dloss_real + dloss_random)
+        total_loss = dis_teacher + dis_student + self.lambda4 * (
+            dis_real + dis_random)
+        log["D/Total Loss"] = total_loss.item()
+
+        return total_loss, log
