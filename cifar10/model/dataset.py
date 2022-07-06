@@ -61,7 +61,7 @@ class FakeCIFAR10(Dataset):
 
     def __getitem__(
             self,
-            idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+            idx: int) -> "Tuple[torch.Tensor, torch.Tensor, torch.Tensor]":
         """Return a sample of the dataset.
 
         Each sample consists of a synthetic CIFAR-10 image and its label, along 
@@ -77,8 +77,7 @@ class FakeCIFAR10(Dataset):
         label[_class] = 1
 
         _id = filepath.stem.split("_")[1]
-        noise_path = str(filepath.with_stem(
-            f"noise_{_id}").with_suffix(".pt"))
+        noise_path = filepath.with_name(f"noise_{_id}.pt")
 
         image = read_image(image_path).float()
         noise = torch.load(noise_path)
