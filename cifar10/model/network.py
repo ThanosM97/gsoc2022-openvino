@@ -10,6 +10,8 @@ The Discriminator takes as input images, and their corresponding conditions
 of features for the input images, obtained from the initial four
 convolutional blocks.
 """
+from typing import Tuple
+
 import torch
 from torch import nn
 
@@ -93,7 +95,17 @@ class Generator(nn.Module):
     def __init__(
             self, ngf: int, z_dim: int, c_dim: int,
             project_dim: int = 128, nc: int = 3) -> None:
-        """Initialize the Generator."""
+        """Initialize the Generator.
+
+        Args:
+            - ngf (int) : number of generator filters
+            - z_dim (int) : noise dimension
+            - c_dim (int) : condition dimension
+            - project_dim (int, optional) : dimension to project the input 
+                                            condition (Default: 128)
+            - nc (int, optional) : number of channels of the output 
+                                   (Default: 3)
+        """
         super(Generator, self).__init__()
         self.ngf = ngf
         self.c_dim = c_dim
@@ -192,7 +204,16 @@ class Discriminator(nn.Module):
     def __init__(
             self, ndf: int, c_dim: int,
             project_dim: int = 128, nc: int = 3) -> None:
-        """Initialize the Generator."""
+        """Initialize the Discriminator.
+
+        Args:
+            - ndf (int) : number of discriminator filters
+            - c_dim (int) : condition dimension
+            - project_dim (int, optional) : dimension to project the input 
+                                            condition (Default: 128)
+            - nc (int, optional) : number of channels of the output 
+                                   (Default: 3)
+        """
         super(Discriminator, self).__init__()
         self.ndf = ndf
         self.c_dim = c_dim
@@ -217,7 +238,7 @@ class Discriminator(nn.Module):
 
     def define_module(self) -> None:
         """Define the Discriminator module."""
-        self.netD = [
+        self.netD = nn.ModuleList([
             nn.Sequential(
                 # input is nc x 32 x 32
                 self.conv4x4(self.nc, self.ndf),  # ndf x 16 x 16
@@ -238,7 +259,7 @@ class Discriminator(nn.Module):
                 self.conv4x4(self.ndf * 2, self.ndf * 4),  # 4ndf x 2 x 2
                 nn.BatchNorm2d(num_features=self.ndf * 4),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True))
-        ]
+        ])
 
         self.project = nn.Sequential(
             nn.Linear(self.c_dim, self.project_dim * 2, bias=False),
@@ -262,7 +283,8 @@ class Discriminator(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor,
+                c: torch.Tensor) -> "Tuple[torch.Tensor, list]":
         """Forward propagation.
 
         Args:
