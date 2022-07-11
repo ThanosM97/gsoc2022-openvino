@@ -279,8 +279,7 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(num_features=self.ndf * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            self.conv4x4(self.ndf * 4, 1),  # 1 x 1 x 1
-            nn.Sigmoid()
+            self.conv4x4(self.ndf * 4, 1)  # 1 x 1 x 1
         )
 
     def forward(self, x: torch.Tensor,
