@@ -57,7 +57,7 @@ StyleGAN2-ADA model from its official repository. Note that the script can also 
 
 ### Getting Started
 1. Download the FaceCIFAR10 dataset from [here](https://drive.google.com/file/d/1Akx9qLfbA-0cq9vbXC6FerYCADs-YeJj/view?usp=sharing) and extract the zip file.
-2. Install the python packages in the [requirements](./requirements.txt) file.
+2. Install the python packages in the [requirements](./requirements.txt) file. (Python 3.10)
 3. Train the model using the example below.
 
 ### Training DiStyleGAN
