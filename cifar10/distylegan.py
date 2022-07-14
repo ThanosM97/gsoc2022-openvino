@@ -166,10 +166,12 @@ class DiStyleGAN(object):
         if checkpoint:
             try:
                 gen_path = Path(checkpoint, 'generator.pt')
-                netG.load_state_dict(torch.load(gen_path))
+                netG.load_state_dict(torch.load(
+                    gen_path, map_location=self.device))
 
                 dis_path = Path(checkpoint, 'discriminator.pt')
-                netD.load_state_dict(torch.load(dis_path))
+                netD.load_state_dict(torch.load(
+                    dis_path, map_location=self.device))
 
             except FileNotFoundError:
                 print("[ERROR] Wrong checkpoint path or files don\'t exist.")
