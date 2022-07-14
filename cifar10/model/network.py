@@ -14,6 +14,7 @@ from typing import Tuple
 
 import torch
 from torch import nn
+from torch.nn.utils import spectral_norm
 
 
 def conv3x3(
@@ -241,42 +242,40 @@ class Discriminator(nn.Module):
         self.netD = nn.ModuleList([
             nn.Sequential(
                 # input is nc x 32 x 32
-                self.conv4x4(self.nc, self.ndf),  # ndf x 16 x 16
-                nn.BatchNorm2d(num_features=self.ndf),
+                # ndf x 16 x 16
+                spectral_norm(self.conv4x4(self.nc, self.ndf)),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
             nn.Sequential(
-                self.conv4x4(self.ndf, self.ndf),  # ndf x 8 x 8
-                nn.BatchNorm2d(num_features=self.ndf),
+                spectral_norm(self.conv4x4(self.ndf, self.ndf)),  # ndf x 8 x 8
                 nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
             nn.Sequential(
-                self.conv4x4(self.ndf, self.ndf * 2),  # 2ndf x 4 x 4
-                nn.BatchNorm2d(num_features=self.ndf * 2),
+                # 2ndf x 4 x 4
+                spectral_norm(self.conv4x4(self.ndf, self.ndf * 2)),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True)),
 
             nn.Sequential(
-                self.conv4x4(self.ndf * 2, self.ndf * 4),  # 4ndf x 2 x 2
-                nn.BatchNorm2d(num_features=self.ndf * 4),
+                # 4ndf x 2 x 2
+                spectral_norm(self.conv4x4(self.ndf * 2, self.ndf * 4)),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True))
         ])
 
         self.project = nn.Sequential(
-            nn.Linear(self.c_dim, self.project_dim * 2, bias=False),
-            nn.BatchNorm1d(self.project_dim * 2),
+            spectral_norm(
+                nn.Linear(self.c_dim, self.project_dim * 2, bias=False)),
             nn.GLU(1)
         )
 
         self.output = nn.Sequential(
-            nn.Conv2d(
+            spectral_norm(nn.Conv2d(
                 in_channels=self.ndf * 4 + self.project_dim,
                 out_channels=self.ndf * 4,
                 kernel_size=1,
                 stride=1,
                 padding=0,
                 bias=True
-            ),
-            nn.BatchNorm2d(num_features=self.ndf * 4),
+            )),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
             self.conv4x4(self.ndf * 4, 1)  # 1 x 1 x 1
