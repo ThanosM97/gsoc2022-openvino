@@ -7,13 +7,15 @@ import torchvision.transforms as T
 from torch import nn
 
 
-def inverse_normalization(image):
-    # step 1: convert it to [0 ,2]
+def inverse_normalization(image: torch.Tensor) -> torch.Tensor:
+    """Inverse normalization from [-1,1] to [0,1]."""
+    # [-1,1] to [0,2]
     image = image + 1
 
-    # step 2: convert it to [0 ,1]
+    # [0,2] to [0,1]
     image = image - image.min()
     image_0_1 = image / (image.max() - image.min())
+
     return image_0_1
 
 
