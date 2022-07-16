@@ -46,6 +46,8 @@ from typing import Tuple
 
 import torch
 from torch import nn
+from torchvision.models import vgg19
+from torchvision.models.feature_extraction import create_feature_extractor
 
 
 class GLoss(nn.Module):
@@ -76,20 +78,41 @@ class GLoss(nn.Module):
     (https://arxiv.org/abs/1705.02894v2) instead of binary cross entropy.
 """
 
-    def __init__(self, lambda_pixel: float, lambda_gan: float) -> None:
+    def __init__(self,
+                 lambda_pixel: float,
+                 lambda_gan: float,
+                 device: torch.device = torch.device("cpu")) -> None:
         super(GLoss, self).__init__()
         """ Initialize the Generator Loss.
 
         Args:
             - lambda_pixel (float) : weight for the pixel loss
             - lambda_gan (float) : weight for the adversarial distillation loss
+            - device (torch.device, optional): device to use for VGG19 ('cpu' 
+                                               or 'cuda') (Default: cpu)
         """
         self.lambda1 = lambda_pixel
         self.lambda2 = lambda_gan
         self.lambda3 = lambda_gan * 0.2
 
+        # load pretrained vgg16 model
+        vgg = vgg19(weights="VGG19_Weights.DEFAULT").eval().to(device)
+
+        # Selected feature representations
+        return_layers = {'features.1': 'h1',
+                         'features.6': 'h2',
+                         'features.11': 'h3',
+                         'features.20': 'h4',
+                         'features.29': 'h5'}
+
+        # Define feature extractor
+        self.feature_extractor = create_feature_extractor(
+            vgg, return_nodes=return_layers)
+        for param in self.feature_extractor.parameters():
+            param.requires_grad = False
+
         self.criterion = nn.L1Loss()
-        self.weights = [1.0/16, 1.0/8, 1.0/4, 1.0]
+        self.weights = [1.0/32, 1.0/16, 1.0/8, 1.0/4, 1.0]
 
     def hinge(self, dloss: torch.Tensor) -> torch.Tensor:
         """ Generator's hinge version of the adversarial loss.
@@ -100,30 +123,26 @@ class GLoss(nn.Module):
 
     def forward(
             self, xs: torch.Tensor, xt: torch.Tensor,
-            sfeatures: "list[torch.Tensor]", tfeatures: "list[torch.Tensor]",
-            dis_student: torch.Tensor = None, dis_random: torch.Tensor = None
-    ) -> "Tuple[torch.Tensor, dict]":
+            dis_student: torch.Tensor = None, dis_random: torch.Tensor = None,
+            decay: bool = False) -> "Tuple[torch.Tensor, dict]":
         """Calculate the total Generator loss.
 
         Args:
-            xs (Tensor) : fake generated image by the generator of the student
-                          network
-            xt (Tensor) : fake generated image by the generator of the teacher
-                          network
-            sfeatures (list[Tensor]) : list of extracted features from the
-                                       discriminator for the fake generated
-                                       image by the student network
-            tfeatures (list[Tensor]) : list of extracted features from the
-                                       discriminator for the fake generated
-                                       image by the teacher network
-            dis_student (Tensor, optional) : the discriminator's output for the 
-                                             fake generated image by the 
-                                             student network from distillation
-                                             (Default: None)
-            dis_random (Tensor, optional) : the discriminator's output for the 
-                                            fake generated image by the student 
-                                            network from a random input noise 
-                                            vector (Default: None)
+            - xs (Tensor) : fake generated image by the generator of the 
+                            student network
+            - xt (Tensor) : fake generated image by the generator of the 
+                            teacher network
+            - dis_student (Tensor, optional) : the discriminator's output for 
+                                               the fake generated image by the 
+                                               student network from 
+                                               distillation (Default: None)
+            - dis_random (Tensor, optional) : the discriminator's output for 
+                                              the fake generated image by the 
+                                              student network from a random 
+                                              input noise vector 
+                                              (Default: None)
+            - decay (bool, optional) : decay lambda1 weight for pixel loss
+                                       (Default: False)
         """
         # Initialize log for the losses
         log = {}
@@ -133,10 +152,14 @@ class GLoss(nn.Module):
         log["G/Pixel Loss"] = pixel_loss.item()
 
         # Feature-level distillation loss
+        sfeatures = self.feature_extractor(xs)
+        tfeatures = self.feature_extractor(xt)
+        tfeatures = {k: v.detach() for k, v in tfeatures.items()}
+
         feature_loss = 0
-        for i in range(len(sfeatures)):
+        for i, key in enumerate(sfeatures.keys()):
             feature_loss += self.weights[i] * self.criterion(
-                sfeatures[i], tfeatures[i])
+                sfeatures[key], tfeatures[key])
         log["G/Feature Loss"] = feature_loss.item()
 
         if dis_student is not None and dis_random is not None:
@@ -158,7 +181,8 @@ class GLoss(nn.Module):
             log["G/Total Loss"] = total_loss.item()
 
         # Gradually decay the pixel-level distillation loss (lambda1) to zero
-        self.lambda1 = max(0.00, self.lambda1-0.01)
+        if decay:
+            self.lambda1 = max(0.00, self.lambda1-0.01)
 
         return total_loss, log
 
@@ -208,18 +232,18 @@ class DLoss(nn.Module):
         """Calculate the total Discriminator loss.
 
         Args:
-            dis_student (Tensor) : the discriminator's output for the fake 
-                                   generated image by the student network 
-                                   from distillation
-            dis_teacher (Tensor) : the discriminator's output for the fake 
-                                   generated image by the teacher network 
-                                   from distillation
-            dis_random (Tensor) : the discriminator's output for the fake 
-                                  generated image by the student network 
-                                  from a random input noise vector
-            dis_real (Tensor) : the discriminator's output for the image
-                                belonging in the distribution of the real 
-                                data                                
+            - dis_student (Tensor) : the discriminator's output for the fake 
+                                     generated image by the student network 
+                                     from distillation
+            - dis_teacher (Tensor) : the discriminator's output for the fake 
+                                     generated image by the teacher network 
+                                     from distillation
+            - dis_random (Tensor) : the discriminator's output for the fake 
+                                    generated image by the student network 
+                                    from a random input noise vector
+            - dis_real (Tensor) : the discriminator's output for the image
+                                  belonging in the distribution of the real 
+                                  data                                
         """
         # Initialize log for losses
         log = {}

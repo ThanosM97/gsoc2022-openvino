@@ -3,15 +3,11 @@ the proposed GAN for conditional image generation.
 
 The Generator takes as input a random noise vector and the one-hot encoding
 for the class condition. It generates a 32x32 image using both residual blocks
-and upsample blocks. 
+and upsample blocks.
 
 The Discriminator takes as input images, and their corresponding conditions
-(labels), and validates their authenticity. In addition, it returns a list
-of features for the input images, obtained from the initial four
-convolutional blocks.
+(labels), and validates their authenticity.
 """
-from typing import Tuple
-
 import torch
 from torch import nn
 from torch.nn.utils import spectral_norm
@@ -81,14 +77,14 @@ class Generator(nn.Module):
     """Generator class.
 
     The Generator takes as input a random noise vector and the one-hot encoding
-    for the class condition. It generates a 32x32 image using both residual 
+    for the class condition. It generates a 32x32 image using both residual
     blocks and upsample blocks.
 
     Args:
     - ngf (int) : number of generator filters
     - z_dim (int) : noise dimension
     - c_dim (int) : condition dimension
-    - project_dim (int, optional) : dimension to project the input condition 
+    - project_dim (int, optional) : dimension to project the input condition
                                     (Default: 128)
     - nc (int, optional) : number of channels of the output (Default: 3)
     """
@@ -102,9 +98,9 @@ class Generator(nn.Module):
             - ngf (int) : number of generator filters
             - z_dim (int) : noise dimension
             - c_dim (int) : condition dimension
-            - project_dim (int, optional) : dimension to project the input 
+            - project_dim (int, optional) : dimension to project the input
                                             condition (Default: 128)
-            - nc (int, optional) : number of channels of the output 
+            - nc (int, optional) : number of channels of the output
                                    (Default: 3)
         """
         super(Generator, self).__init__()
@@ -190,14 +186,12 @@ class Discriminator(nn.Module):
     """Discriminator class.
 
     The Discriminator takes as input images, and their corresponding conditions
-    (labels), and validates their authenticity. In addition, it returns a list
-    of features for the input images, obtained from the initial four
-    convolutional blocks.
+    (labels), and validates their authenticity.
 
     Args:
     - ndf (int) : number of discriminator filters
     - c_dim (int) : condition dimension
-    - project_dim (int, optional) : dimension to project the input condition 
+    - project_dim (int, optional) : dimension to project the input condition
                                     (Default: 128)
     - nc (int, optional) : number of channels of the output (Default: 3)
     """
@@ -210,9 +204,9 @@ class Discriminator(nn.Module):
         Args:
             - ndf (int) : number of discriminator filters
             - c_dim (int) : condition dimension
-            - project_dim (int, optional) : dimension to project the input 
+            - project_dim (int, optional) : dimension to project the input
                                             condition (Default: 128)
-            - nc (int, optional) : number of channels of the output 
+            - nc (int, optional) : number of channels of the output
                                    (Default: 3)
         """
         super(Discriminator, self).__init__()
@@ -231,7 +225,7 @@ class Discriminator(nn.Module):
         Args:
         - in_channels (int) : number of input channels
         - out_channels (int) : number of output channels
-        - bias (bool, optional) : defines the use of a weight bias 
+        - bias (bool, optional) : defines the use of a weight bias
                                   (Default: True)
         """
         return nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2,
@@ -239,27 +233,22 @@ class Discriminator(nn.Module):
 
     def define_module(self) -> None:
         """Define the Discriminator module."""
-        self.netD = nn.ModuleList([
-            nn.Sequential(
-                # input is nc x 32 x 32
-                # ndf x 16 x 16
-                spectral_norm(self.conv4x4(self.nc, self.ndf)),
-                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
+        self.netD = nn.Sequential(
+            # input is nc x 32 x 32
+            # ndf x 16 x 16
+            spectral_norm(self.conv4x4(self.nc, self.ndf)),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Sequential(
-                spectral_norm(self.conv4x4(self.ndf, self.ndf)),  # ndf x 8 x 8
-                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
+            spectral_norm(self.conv4x4(self.ndf, self.ndf)),  # ndf x 8 x 8
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Sequential(
-                # 2ndf x 4 x 4
-                spectral_norm(self.conv4x4(self.ndf, self.ndf * 2)),
-                nn.LeakyReLU(negative_slope=0.2, inplace=True)),
+            # 2ndf x 4 x 4
+            spectral_norm(self.conv4x4(self.ndf, self.ndf * 2)),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
-            nn.Sequential(
-                # 4ndf x 2 x 2
-                spectral_norm(self.conv4x4(self.ndf * 2, self.ndf * 4)),
-                nn.LeakyReLU(negative_slope=0.2, inplace=True))
-        ])
+            # 4ndf x 2 x 2
+            spectral_norm(self.conv4x4(self.ndf * 2, self.ndf * 4)),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True))
 
         self.project = nn.Sequential(
             spectral_norm(
@@ -282,21 +271,18 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, x: torch.Tensor,
-                c: torch.Tensor) -> "Tuple[torch.Tensor, list]":
+                c: torch.Tensor) -> "torch.Tensor":
         """Forward propagation.
 
         Args:
             - x (Tensor) : input image
             - c (Tensor) : condition (one-hot encoding)
         """
-        features = []
-        for block in self.netD:
-            x = block(x)
-            features.append(x)
+        x = self.netD(x)
 
         h = self.project(c).view(-1, self.project_dim, 1, 1)
         h = h.repeat(1, 1, 2, 2)
 
         h = torch.cat((h, x), 1)
 
-        return self.output(h), features
+        return self.output(h)
