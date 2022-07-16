@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Tuple
 
 import torch
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-from torchvision.io import read_image
 
 
 class FakeCIFAR10(Dataset):
@@ -79,7 +79,7 @@ class FakeCIFAR10(Dataset):
         _id = filepath.stem.split("_")[1]
         noise_path = filepath.with_name(f"noise_{_id}.pt")
 
-        image = read_image(image_path).float()
+        image = Image.open(image_path).convert('RGB')
         noise = torch.load(noise_path)
 
         if self.transform:

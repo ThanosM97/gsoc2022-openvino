@@ -7,6 +7,16 @@ import torchvision.transforms as T
 from torch import nn
 
 
+def inverse_normalization(image):
+    # step 1: convert it to [0 ,2]
+    image = image + 1
+
+    # step 2: convert it to [0 ,1]
+    image = image - image.min()
+    image_0_1 = image / (image.max() - image.min())
+    return image_0_1
+
+
 def save_images(images: torch.Tensor, path: str, epoch: int) -> None:
     """Save a single or a batch of images.
 
@@ -31,6 +41,7 @@ def save_images(images: torch.Tensor, path: str, epoch: int) -> None:
 
     for i, img in enumerate(images):
         img = img.cpu()
+        img = inverse_normalization(img)
         img_PIL = transform(img)
 
         filepath = loc / Path(f'image-{i}.png')
