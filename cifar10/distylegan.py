@@ -417,9 +417,8 @@ class DiStyleGAN(object):
                 dis_teacher, features_teacher = self.netD(teacher_image, label)
                 features_teacher = [h.detach() for h in features_teacher]
 
-                student_image = self.netG(z, label)
-                detached_student = student_image.clone().detach()
-                dis_student, _ = self.netD(detached_student, label)
+                student_image = self.netG(z, label).detach()
+                dis_student, _ = self.netD(student_image, label)
 
                 try:
                     real_image, real_label = next(real_iter)
@@ -439,9 +438,8 @@ class DiStyleGAN(object):
                 noise = torch.randn(
                     batch_size, self.config["z_dim"]).to(
                     self.device)
-                random_image = self.netG(noise, real_label)
-                detached_random = random_image.clone().detach()
-                dis_random, _ = self.netD(detached_random, real_label)
+                random_image = self.netG(noise, real_label).detach()
+                dis_random, _ = self.netD(random_image, real_label)
 
                 lossD, logD = criterionD(dis_student, dis_teacher,
                                          dis_random, dis_real)
@@ -454,10 +452,14 @@ class DiStyleGAN(object):
                 for param in self.netD.parameters():
                     param.requires_grad = False
 
+                student_image = self.netG(z, label)
                 dis_student, features_student = self.netD(student_image, label)
 
                 if (i+1) % gstep == 0:
-                    dis_student, _ = self.netD(student_image, label)
+                    noise = torch.randn(
+                        batch_size, self.z_dim).to(
+                        self.device)
+                    random_image = self.netG(noise, real_label)
                     dis_random, _ = self.netD(random_image, real_label)
                     lossG, logG = criterionG(
                         student_image,
