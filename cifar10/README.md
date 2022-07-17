@@ -65,12 +65,9 @@ In order to train from scratch DiStyleGAN from Python, you can use the code belo
 
 ```python
 from distylegan import DiStyleGAN
-model = DiStyleGAN(
-    dataset="./fakecifar/dataset", 
-    real_dataset="./cifar", 
-    c_dim=10, z_dim=512, ngf=96, ndf=64,
-    lambda_pixel=0.2, lambda_ganG=1e-2, lambda_ganD=0.2)
+model = DiStyleGAN()
 model.train(
+    dataset="./fakecifar/dataset", 
     save="results",
     epochs=200,
     batch_size=128,
