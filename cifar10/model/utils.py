@@ -19,23 +19,23 @@ def inverse_normalization(image: torch.Tensor) -> torch.Tensor:
     return image_0_1
 
 
-def save_images(images: torch.Tensor, path: str, epoch: int) -> None:
+def save_images(images: torch.Tensor, path: str, dirname: str) -> None:
     """Save a single or a batch of images.
 
     This method takes as input a tensor containing the images to
     be saved, and saves them in the following directory:
-                `path`/images/epoch-`epoch`/
+                `path`/images/`dirname`/
 
     Args:
         - images (Tensor) : tensor containing the images to be saved. The 
                            tensor must have the following format:
                            (number_of_images x C x H x W)
         - path (str) : directory's path to save the images
-        - epoch (int) : the current epoch, which is used for naming purposes
+        - dirname (str) : used for naming purposes
     """
     loc = Path(
         path,
-        f'images/epoch-{epoch}'
+        f'images/{dirname}'
     )
     loc.mkdir(parents=True, exist_ok=True)
 
