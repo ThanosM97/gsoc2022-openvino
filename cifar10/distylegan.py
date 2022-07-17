@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import CIFAR10
-from torchvision.transforms import ToTensor
+from torchvision import transforms
 
 from model.dataset import FakeCIFAR10
 from model.loss import DLoss, GLoss
@@ -124,11 +124,17 @@ class DiStyleGAN(object):
         else:
             self.device = torch.device(device)
 
+        if transform is None:
+            transform = transforms.Compose(
+                [transforms.ToTensor(),
+                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
         # Datasets
-        self.fake_cifar_ds = FakeCIFAR10(dataset, transform)
+        self.fake_cifar_ds = FakeCIFAR10(dataset, transform=transform)
+
         self.cifar10_ds = dataset = CIFAR10(
             root=real_dataset,
-            download=True, transform=ToTensor())
+            download=True, transform=transform)
 
     def init_weights(self, m) -> None:
         """Initialize the weights.
