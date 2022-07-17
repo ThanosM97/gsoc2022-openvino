@@ -378,7 +378,8 @@ class DiStyleGAN(object):
         # Define criteria
         criterionG = GLoss(
             self.config["lambda_pixel"],
-            self.config["lambda_ganG"])
+            self.config["lambda_ganG"],
+            self.device)
         criterionD = DLoss(self.config["lambda_ganD"])
 
         training_start = datetime.now()
@@ -414,11 +415,10 @@ class DiStyleGAN(object):
                 for param in self.netD.parameters():
                     param.requires_grad = True
 
-                dis_teacher, features_teacher = self.netD(teacher_image, label)
-                features_teacher = [h.detach() for h in features_teacher]
+                dis_teacher = self.netD(teacher_image, label)
 
                 student_image = self.netG(z, label).detach()
-                dis_student, _ = self.netD(student_image, label)
+                dis_student = self.netD(student_image, label)
 
                 try:
                     real_image, real_label = next(real_iter)
@@ -433,13 +433,13 @@ class DiStyleGAN(object):
                 real_image = real_image.to(self.device)
                 real_label = real_label.to(self.device)
 
-                dis_real, _ = self.netD(real_image, real_label)
+                dis_real = self.netD(real_image, real_label)
 
                 noise = torch.randn(
                     batch_size, self.config["z_dim"]).to(
                     self.device)
                 random_image = self.netG(noise, real_label).detach()
-                dis_random, _ = self.netD(random_image, real_label)
+                dis_random = self.netD(random_image, real_label)
 
                 lossD, logD = criterionD(dis_student, dis_teacher,
                                          dis_random, dis_real)
@@ -453,28 +453,29 @@ class DiStyleGAN(object):
                     param.requires_grad = False
 
                 student_image = self.netG(z, label)
-                dis_student, features_student = self.netD(student_image, label)
+                dis_student = self.netD(student_image, label)
+
+                # Decay lambda1 weight for pixel loss after each epoch
+                decay = i == 0 and epoch != 1
 
                 if (i+1) % gstep == 0:
                     noise = torch.randn(
                         batch_size, self.z_dim).to(
                         self.device)
                     random_image = self.netG(noise, real_label)
-                    dis_random, _ = self.netD(random_image, real_label)
+                    dis_random = self.netD(random_image, real_label)
                     lossG, logG = criterionG(
                         student_image,
                         teacher_image,
-                        features_student,
-                        features_teacher,
                         dis_student,
-                        dis_random
+                        dis_random,
+                        decay=decay
                     )
                 else:
                     lossG, logG = criterionG(
                         student_image,
                         teacher_image,
-                        features_student,
-                        features_teacher
+                        decay=decay
                     )
 
                 self.optimizerG.zero_grad()
