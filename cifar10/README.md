@@ -57,7 +57,7 @@ StyleGAN2-ADA model from its official repository. Note that the script can also 
 
 ### Getting Started
 1. Download the FaceCIFAR10 dataset from [here](https://drive.google.com/file/d/1Akx9qLfbA-0cq9vbXC6FerYCADs-YeJj/view?usp=sharing) and extract the zip file.
-2. Install the python packages in the [requirements](./requirements.txt) file. (Python 3.10)
+2. Install the python packages in the [requirements](../requirements.txt) file. (Python 3.10)
 3. Train the model using the example below.
 
 ### Training DiStyleGAN
@@ -65,12 +65,9 @@ In order to train from scratch DiStyleGAN from Python, you can use the code belo
 
 ```python
 from distylegan import DiStyleGAN
-model = DiStyleGAN(
-    dataset="./fakecifar/dataset", 
-    real_dataset="./cifar", 
-    c_dim=10, z_dim=512, ngf=96, ndf=64,
-    lambda_pixel=0.2, lambda_ganG=1e-2, lambda_ganD=0.2)
+model = DiStyleGAN()
 model.train(
+    dataset="./fakecifar/dataset", 
     save="results",
     epochs=200,
     batch_size=128,

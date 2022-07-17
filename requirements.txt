@@ -1,3 +1,7 @@
+matplotlib==3.5.2
+Pillow==9.2.0
+rasterfairy==1.0.6
+scikit-learn==1.1.1
 tensorboard==2.9.1
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
