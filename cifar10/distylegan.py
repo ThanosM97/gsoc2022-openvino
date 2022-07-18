@@ -398,9 +398,8 @@ class DiStyleGAN(object):
         total_iterations = len(fakeCIFAR_loader) * epochs
 
         for epoch in range(starting_epoch, epochs+1):
+            real_iter = iter(cifar10_loader)
             for i, (z, teacher_image, label) in enumerate(fakeCIFAR_loader):
-                real_iter = iter(cifar10_loader)
-
                 # Decay the learning rates
                 if (epoch-1)*len(fakeCIFAR_loader) + i >= lr_decay:
                     decay_lr(self.optimizerG, total_iterations, lr_decay, lr_G)
@@ -517,19 +516,20 @@ class DiStyleGAN(object):
     def generate(
         self,
         checkpoint_path: str,
-        save: str,
         nsamples: int,
-        label: "int | list[int]",
+        label: "int | list[int]" = None,
+        save: str = None,
         batch_size: int = 32
-    ):
+    ) -> torch.Tensor:
         """Generate images using a pre-trained model's checkpoint.
 
         Args:
             - checkpoint_path (str) : path to previous checkpoint (the
                 directory must contain the generator.pt and config.json files)
-            - save (str) : path to save the generated images
             - nsamples (int) : number of samples to generate
-            - label (int, list[int]) : class label for the samples
+            - label (int, list[int], optional) : class label for the samples
+                                                 (Default: None, random labels)
+            - save (str) : path to save the generated images (Default: None)
             - batch_size (int, optional) : number of samples per batch
                                           (Default: 32)
         """
@@ -548,27 +548,48 @@ class DiStyleGAN(object):
 
         if isinstance(label, int):
             label = [label]
+        elif label is None:
+            label = ["random"]
 
         if nsamples < batch_size:
             batch_size = nsamples
 
+        all_images = []
         for l in label:
             images = torch.Tensor()
             labels = torch.zeros(batch_size, 10).to(self.device)
-            labels[:, l] = 1
+            if l == "random":
+                for k in range(batch_size):
+                    labels[k][random.randint(0, 9)] = 1
+            else:
+                labels[:, l] = 1
             for i in range(nsamples // batch_size + 1):
                 # Last batch
                 if i == (nsamples // batch_size):
-                    batch_size = nsamples % batch_size
-                    labels = torch.zeros(batch_size, 10).to(self.device)
-                    labels[:, l] = 1
+                    last_size = nsamples % batch_size
+                    labels = torch.zeros(last_size, 10).to(self.device)
+                    if l == "random":
+                        for k in range(last_size):
+                            labels[k][random.randint(0, 9)] = 1
+                    else:
+                        labels[:, l] = 1
 
-                noise = torch.randn(batch_size, self.config["z_dim"]).to(
-                    self.device)
+                    noise = torch.randn(last_size, self.config["z_dim"]).to(
+                        self.device)
+                else:
+                    noise = torch.randn(batch_size, self.config["z_dim"]).to(
+                        self.device)
 
                 with torch.no_grad():
                     images = torch.cat(
                         [images, netG(noise, labels)],
                         dim=0)
 
-            save_images(images, save, f"class-{l}")
+            all_images.append(images)
+
+            if save is not None:
+                save_images(images, save, f"class-{l}")
+
+        all_images = torch.stack(all_images)
+
+        return all_images
