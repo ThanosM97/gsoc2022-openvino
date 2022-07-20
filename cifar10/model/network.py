@@ -151,11 +151,11 @@ class Generator(nn.Module):
             nn.BatchNorm1d(ngf * 4 * 4 * 2),
             nn.GLU(1))
 
-        self.residual = self._make_layer(ResBlock, ngf, 5)
-
         self.upsample1 = self.upBlock(ngf, ngf // 2)
         self.upsample2 = self.upBlock(ngf // 2, ngf // 4)
         self.upsample3 = self.upBlock(ngf // 4, ngf // 8)
+
+        self.residual = self._make_layer(ResBlock, ngf // 8, 3)
 
         self.img = nn.Sequential(
             conv3x3(ngf // 8, self.nc),
@@ -175,11 +175,11 @@ class Generator(nn.Module):
         h_code = self.fc(in_code)
         h_code = h_code.view(-1, self.ngf, 4, 4)  # ngf x 4 x 4
 
-        out_code = self.residual(h_code)
-
-        out_code = self.upsample1(out_code)  # ngf//2 x 8 x 8
+        out_code = self.upsample1(h_code)  # ngf//2 x 8 x 8
         out_code = self.upsample2(out_code)  # ngf//4 x 16 x 16
         out_code = self.upsample3(out_code)  # ngf//8 x 32 x 32
+
+        out_code = self.residual(out_code)  # ngf//8 x 32 x 32
 
         img = self.img(out_code)  # 3 x 32 x 32
 
