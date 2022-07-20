@@ -1,5 +1,5 @@
-"""This module implements the DiStyleGAN model, which constitutes a 
-distillation attempt for the official PyTorch implementation of the 
+"""This module implements the DiStyleGAN model, which constitutes a
+distillation attempt for the official PyTorch implementation of the
 StyleGAN2-ADA model by NVIDIA Research Projects on Github
 (https://github.com/NVlabs/stylegan2-ada-pytorch), for the task of
 conditional image generation on CIFAR-10.
@@ -14,13 +14,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from torchvision.datasets import CIFAR10
 from torchvision import transforms
 
-from model.dataset import FakeCIFAR10
 from model.loss import DLoss, GLoss
 from model.network import Discriminator, Generator
-from model.utils import decay_lr, save_checkpoints, save_images
+from model.utils import *
 
 
 class DiStyleGAN(object):
@@ -29,18 +27,18 @@ class DiStyleGAN(object):
     Args:
         - c_dim (int, optional) : condition dimension (Default: 10)
         - z_dim (int, optional) : noise dimension (Default: 512)
-        - ngf (int, optional) : number of generator filters in the first 
+        - ngf (int, optional) : number of generator filters in the first
                                 convolutional layer (Default: 64)
-        - ndf (int, optional) : number of discriminator filters in the first 
+        - ndf (int, optional) : number of discriminator filters in the first
                                 convolutional layer (Default: 32)
-        - lambda_pixel (float, optional) : weight for the pixel loss of the 
+        - lambda_pixel (float, optional) : weight for the pixel loss of the
                                            Generator (Default: 0.2)
-        - lambda_ganG (float, optional) : weight for the adversarial 
+        - lambda_ganG (float, optional) : weight for the adversarial
                                           distillation loss of the Generator
                                           (Default: 0.01)
         - lambda_ganD (float, optional) : weight for the adversarial GAN loss
                                           of the Discriminator (Default: 0.2)
-        - project_dim (int, optional) : dimension to project the input 
+        - project_dim (int, optional) : dimension to project the input
                                         condition (Default: 128)
         - nc (int, optional): number of channels for the images (Default: 3)
         - transform (callable, optional) : optional transform to be applied
@@ -48,8 +46,8 @@ class DiStyleGAN(object):
                                            (Default: None)
         - num_test (int, optional): number of generated images for evaluation
                                     (Default: 30)
-        - device (str, optional): device to use for training ('cpu' or 'cuda') 
-                                  (Default: If there is a CUDA device 
+        - device (str, optional): device to use for training ('cpu' or 'cuda')
+                                  (Default: If there is a CUDA device
                                   available, it will be used for training)
     """
 
@@ -73,26 +71,26 @@ class DiStyleGAN(object):
         Args:
         - c_dim (int, optional) : condition dimension (Default: 10)
         - z_dim (int, optional) : noise dimension (Default: 512)
-        - ngf (int, optional) : number of generator filters in the first 
+        - ngf (int, optional) : number of generator filters in the first
                                 convolutional layer (Default: 64)
-        - ndf (int, optional) : number of discriminator filters in the first 
+        - ndf (int, optional) : number of discriminator filters in the first
                                 convolutional layer (Default: 32)
-        - lambda_pixel (float, optional) : weight for the pixel loss of the 
+        - lambda_pixel (float, optional) : weight for the pixel loss of the
                                            Generator (Default: 0.2)
-        - lambda_ganG (float, optional) : weight for the adversarial 
+        - lambda_ganG (float, optional) : weight for the adversarial
                                           distillation loss of the Generator
                                           (Default: 0.01)
         - lambda_ganD (float, optional) : weight for the adversarial GAN loss
                                           of the Discriminator (Default: 0.2)
-        - project_dim (int, optional) : dimension to project the input 
+        - project_dim (int, optional) : dimension to project the input
                                         condition (Default: 128)
         - nc (int, optional): number of channels for the images (Default: 3)
         - transform (callable, optional) : optional transform to be applied
                                            on a sample image (Default: None)
         - num_test (int, optional): number of generated images for evaluation
                                     (Default: 30)
-        - device (str, optional): device to use for training ('cpu' or 'cuda') 
-                                  (Default: If there is a CUDA device 
+        - device (str, optional): device to use for training ('cpu' or 'cuda')
+                                  (Default: If there is a CUDA device
                                   available, it will be used for training)
         """
         self.num_test = num_test
@@ -186,11 +184,11 @@ class DiStyleGAN(object):
     def __set_test(self, checkpoint=None) -> None:
         """Initialize the test set for evaluation.
 
-        This method generates random noise test vectors and corresponding 
-        random-class test labels. In order to evaluate the performance of the 
+        This method generates random noise test vectors and corresponding
+        random-class test labels. In order to evaluate the performance of the
         model, this test set must be fixed since the beginning of the training.
         In case the training is resumed, the aforementioned vectors are loaded
-        from the given `checkpoint` path. 
+        from the given `checkpoint` path.
 
         Args:
             - checkpoint (str, optional) : path to checkpoint's files
@@ -257,7 +255,7 @@ class DiStyleGAN(object):
     def __evaluate(self, path: str, epoch: int) -> None:
         """Generate images for the `num_test` test samples selected.
 
-        This method is called at the end of each training epoch in order to 
+        This method is called at the end of each training epoch in order to
         evaluate the performance of the model during training, by generating
         and saving images based on the test set's noise and labels.
 
@@ -271,6 +269,117 @@ class DiStyleGAN(object):
 
         dirname = f"epoch-{epoch}"
         save_images(images, path, dirname)
+
+    def update_D(
+            self, z: torch.Tensor, teacher_image: torch.Tensor,
+            label: torch.Tensor, real_image: torch.Tensor,
+            real_label: torch.Tensor) -> "tuple[dict, list]":
+        """Update the Discriminator network's parameters.
+
+        This method is called at each training iteration to update the
+        Discriminator network's parameters. It returns a log of the losses, 
+        and a list of features extracted by the discriminator for the 
+        `teacher_image`.
+
+        Args:
+            - z (torch.Tensor) : noise tensor from the FakeCIFAR10 dataset
+            - teacher_image (torch.Tensor) : the fake image generated by the
+                                             teacher network that corresponds
+                                             to the input noise tensor `z`
+            - label (torch.Tensor) : the label that corresponds to the input
+                                     image `teacher_image`
+            - real_image (torch.Tensor) : a sample image from the official
+                                          CIFAR10 dataset
+            - real_label (torch.Tensor) : the label that corresponds to the
+                                          input `real_image`
+
+        """
+        for param in self.netD.parameters():
+            param.requires_grad = True
+
+        # Knowledge Distillation - Teacher
+        dis_teacher, features_teacher = self.netD(teacher_image, label)
+        features_teacher = [h.detach() for h in features_teacher]
+
+        # Knowledge Distillation - Student
+        student_image = self.netG(z, label).detach()
+        dis_student, _ = self.netD(student_image, label)
+
+        # Adversarial Loss - Real
+        dis_real, _ = self.netD(real_image, real_label)
+
+        # Adversarial Loss - Random
+        noise = torch.randn(
+            self.batch_size, self.config["z_dim"]).to(
+            self.device)
+        random_image = self.netG(noise, real_label).detach()
+        dis_random, _ = self.netD(random_image, real_label)
+
+        lossD, logD = self.criterionD(dis_student, dis_teacher,
+                                      dis_random, dis_real)
+
+        self.optimizerD.zero_grad()
+        lossD.backward()
+        self.optimizerD.step()
+
+        return logD, features_teacher
+
+    def update_G(self, z: torch.Tensor, teacher_image: torch.Tensor,
+                 features_teacher: "list[torch.Tensor]", label: torch.Tensor,
+                 real_label: torch.Tensor, adversarial: bool) -> dict:
+        """Update the Generator network's parameters.
+
+        This method is called at each training iteration to update the
+        Generator network's parameters. It returns a log of the losses.
+
+        Args:
+            - z (torch.Tensor) : noise tensor from the FakeCIFAR10 dataset
+            - teacher_image (torch.Tensor) : the fake image generated by the
+                                             teacher network that corresponds
+                                             to the input noise tensor `z`
+            - features_teacher (list[torch.Tensor]): a list of features 
+                extracted by the discriminator for the `teacher_image`
+            - label (torch.Tensor) : the label that corresponds to the input
+                                     image `teacher_image`
+            - real_label (torch.Tensor) : the labels used in the current
+                                          batch of real images
+            - adversarial (bool) : defines whether or not to use the 
+                                   adversarial losses in the current update
+
+        """
+        for param in self.netD.parameters():
+            param.requires_grad = False
+
+        student_image = self.netG(z, label)
+        dis_student, features_student = self.netD(student_image, label)
+
+        if adversarial:
+            noise = torch.randn(
+                self.batch_size, self.config["z_dim"]).to(
+                self.device)
+            random_image = self.netG(noise, real_label)
+            dis_random, _ = self.netD(random_image, real_label)
+            lossG, logG = self.criterionG(
+                student_image,
+                teacher_image,
+                features_student,
+                features_teacher,
+                dis_student,
+                dis_random
+            )
+        else:
+            lossG, logG = self.criterionG(
+                student_image,
+                teacher_image,
+                features_student,
+                features_teacher
+            )
+
+        self.optimizerG.zero_grad()
+        lossG.backward()
+        self.optimizerG.step()
+
+        return logG
 
     def train(
         self,
@@ -329,6 +438,8 @@ class DiStyleGAN(object):
         self.save = Path(save, date)
         self.save.mkdir(exist_ok=True, parents=True)
 
+        self.batch_size = batch_size
+
         if checkpoint_path is not None:
             with open(Path(checkpoint_path, "config.json"), "r") as f:
                 self.config = json.load(f)
@@ -343,30 +454,10 @@ class DiStyleGAN(object):
         # Load the networks
         self.netG, self.netD = self.load_networks(checkpoint_path)
 
-        # Datasets
-        self.fake_cifar_ds = FakeCIFAR10(dataset, transform=self.transform)
-
-        if real_dataset is None:
-            real_dataset = Path(dataset).parent
-        self.cifar10_ds = CIFAR10(
-            root=real_dataset,
-            download=True, transform=self.transform)
-
-        # Initialize dataloaders
-        fakeCIFAR_loader = torch.utils.data.DataLoader(
-            self.fake_cifar_ds,
-            batch_size=batch_size,
-            shuffle=True,
-            drop_last=True,
-            num_workers=num_workers
-        )
-        cifar10_loader = torch.utils.data.DataLoader(
-            self.cifar10_ds,
-            batch_size=batch_size,
-            shuffle=True,
-            drop_last=True,
-            num_workers=num_workers
-        )
+        # Get dataloaders
+        fakeCIFAR_loader, cifar10_loader = get_dataloaders(
+            dataset, self.transform, self.batch_size,
+            real_dataset, num_workers)
 
         # Set test dataset
         self.__set_test(checkpoint_path)
@@ -376,10 +467,10 @@ class DiStyleGAN(object):
             lr_G, lr_D, adam_momentum, checkpoint_path)
 
         # Define criteria
-        criterionG = GLoss(
+        self.criterionG = GLoss(
             self.config["lambda_pixel"],
             self.config["lambda_ganG"])
-        criterionD = DLoss(self.config["lambda_ganD"])
+        self.criterionD = DLoss(self.config["lambda_ganD"])
 
         training_start = datetime.now()
         print(
@@ -409,16 +500,7 @@ class DiStyleGAN(object):
                 teacher_image = teacher_image.to(self.device)
                 label = label.to(self.device)
 
-                # UPDATE DISCRIMINATOR
-                for param in self.netD.parameters():
-                    param.requires_grad = True
-
-                dis_teacher, features_teacher = self.netD(teacher_image, label)
-                features_teacher = [h.detach() for h in features_teacher]
-
-                student_image = self.netG(z, label).detach()
-                dis_student, _ = self.netD(student_image, label)
-
+                # Get real data
                 try:
                     real_image, real_label = next(real_iter)
                 except:
@@ -432,53 +514,15 @@ class DiStyleGAN(object):
                 real_image = real_image.to(self.device)
                 real_label = real_label.to(self.device)
 
-                dis_real, _ = self.netD(real_image, real_label)
+                # Update Discriminator
+                logD, features_teacher = self.update_D(
+                    z, teacher_image, label, real_image, real_label)
 
-                noise = torch.randn(
-                    batch_size, self.config["z_dim"]).to(
-                    self.device)
-                random_image = self.netG(noise, real_label).detach()
-                dis_random, _ = self.netD(random_image, real_label)
-
-                lossD, logD = criterionD(dis_student, dis_teacher,
-                                         dis_random, dis_real)
-
-                self.optimizerD.zero_grad()
-                lossD.backward()
-                self.optimizerD.step()
-
-                # UPDATE GENERATOR
-                for param in self.netD.parameters():
-                    param.requires_grad = False
-
-                student_image = self.netG(z, label)
-                dis_student, features_student = self.netD(student_image, label)
-
-                if (i+1) % gstep == 0:
-                    noise = torch.randn(
-                        batch_size, self.z_dim).to(
-                        self.device)
-                    random_image = self.netG(noise, real_label)
-                    dis_random, _ = self.netD(random_image, real_label)
-                    lossG, logG = criterionG(
-                        student_image,
-                        teacher_image,
-                        features_student,
-                        features_teacher,
-                        dis_student,
-                        dis_random
-                    )
-                else:
-                    lossG, logG = criterionG(
-                        student_image,
-                        teacher_image,
-                        features_student,
-                        features_teacher
-                    )
-
-                self.optimizerG.zero_grad()
-                lossG.backward()
-                self.optimizerG.step()
+                # Update Generator
+                adversarial = (i+1) % gstep == 0
+                logG = self.update_G(
+                    z, teacher_image, features_teacher, label, real_label,
+                    adversarial)
 
                 # Print training information
                 print(
