@@ -30,23 +30,23 @@ trainable parameters. Its official PyTorch implementation can be found [here](ht
 
 ## Overview
 
-* Getting Started
-    * [Home](.)
-    * Timeline
-    * [Conditional Image Generation](./Conditional-Image-Generation)
-    * [Knowledge Distillation](./Knowledge-Distillation-Framework)
+* [Home](../../wiki/)
+* Timeline
 * Project
-    * [Problem Statement](./Problem-Statement)
-    * [Black-Box Distillation](./Black-Box-Distillation)
-    * [Objectives](./Objectives)
+    * [Conditional Image Generation](../../wiki/Conditional-Image-Generation)
+    * [Knowledge Distillation](../../wiki/Knowledge-Distillation-Framework)
+    * [Problem Statement](../../wiki/Problem-Statement)
+    * [Black-Box Distillation](../../wiki/Black-Box-Distillation)
+    * [Objectives](../../wiki/Objectives)
     * CIFAR-10
-        * [Dataset](./CIFAR10)
-        * [Black-Box Distillation](./CIFAR10-Black-Box-Distillation)
-        * Network
+        * [Dataset](../../wiki/CIFAR10)
+        * [Teacher Network](../../wiki/Teacher-Network)
+        * Student Network
 * Code
-    * Dependencies
+    * Getting Started
     * Training
     * Evaluation
+
 
 
 ## Project Delivarables
