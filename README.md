@@ -41,7 +41,7 @@ trainable parameters. Its official PyTorch implementation can be found [here](ht
     * CIFAR-10
         * [Dataset](../../wiki/CIFAR10)
         * [Teacher Network](../../wiki/Teacher-Network)
-        * Student Network
+        * [Student Network](../../wiki/Student-Network)
 * Code
     * Getting Started
     * Training
