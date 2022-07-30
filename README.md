@@ -1,10 +1,13 @@
-<h1 align="center"> Google Summer of Code 2022: Development of a lightweight class-conditional GAN for image generation </h1>
+<h1 align="center"> Google Summer of Code 2022: Train a DL model for synthetic data generation for model optimization </h1>
 
 This repository hosts the code for the GSoC22 project 
-["Development of a lightweight class-conditional GAN for image generation"](https://summerofcode.withgoogle.com/programs/2022/projects/bCmHAPIL), 
+["Train a DL model for synthetic data generation for model optimization"](https://summerofcode.withgoogle.com/programs/2022/projects/bCmHAPIL), 
 which is implemented under the auspices of Intel's [OpenVINO Toolkit](https://github.com/openvinotoolkit) organization.
 
 ## About the project
+The project is divided into two parts. For the first part, the goal is to train a lightweight Deep Learning model to generate synthetic images. For the second part, the pre-trained model of the first part is used to generate a dataset of synthetic images for CIFAR-10. Subsequently, this dataset is used for model optimization with [OpenVINO's Post-training Optimization Tool](https://docs.openvino.ai/latest/pot_introduction.html). We evaluate the performance of the 8-bit post-training quantization method on a range of Computer Vision models.
+
+### Model training (PART I)
 Ιmage Generation is a task of Computer Vision that has been long researched in the literature. 
 Studies leverage Generative Adversarial Networks (GANs) [[1]](#1), which when trained well, they can produce realistic synthetic
 images, using only a random noise vector as input. Recent models [[2]](#2) are able to generate images that are indistinguishable 
@@ -22,17 +25,19 @@ method designed for GANs. In this framework, the teacher network is used to gene
 that will subseqently be used to train the student network. This technique does not require any access to the internal states and features of the
 teacher network, which also can be discarded upon the creation of the fake dataset. 
 
-The goal of this project is to investigate whether or not it is possible to generate quality images, using a lightweight model, by levraging the aforementioned
-distillation framework. For our experiments we used the CIFAR-10 [[8]](#8) dataset, which although has a small spatial size (32x32), it is still complex enough to require 
-a large model to generate quality images. The selected teacher network for the distillation procedure is the StyleGAN2-ADA [[9]](#9) model, which has more than 20 million
-trainable parameters. Its official PyTorch implementation can be found [here](https://github.com/NVlabs/stylegan2-ada-pytorch).
+The goal of this part of the project is to investigate whether or not it is possible to generate quality images, using a lightweight model, by leveraging the aforementioned distillation framework. For our experiments we use the CIFAR-10 [[8]](#8) dataset, which although has a small spatial size (32x32), it is still complex enough to require a large model to generate quality images. The selected teacher network for the distillation procedure is the StyleGAN2-ADA [[9]](#9) model, which has more than 20 million trainable parameters. Its official PyTorch implementation can be found [here](https://github.com/NVlabs/stylegan2-ada-pytorch).
 
+
+### Post-training Model Optimization (PART II)
+Post-training model optimization is the task of applying techniques, such as post-training 8-bit quantization, to improve the performance of a model, without the need for retraining or finetuning. Using OpenVINO toolkit, the optimization procedure does not require a training dataset, but rather a representative calibration dataset of a relatively small number of samples (e.g. 300 samples).
+
+The goal of the second part of the project is to evaluate the performance of the 8-bit post-training quantization method, on a range of Computer Vision models. We compare the performance of the optimized models when a subset of the original CIFAR-10 dataset is used to calibrate the model, with the corresponding performance using a calibration dataset of synthetic generated images by the trained DL model of the first part of the project.
 
 ## Overview
 
 * [Home](../../wiki/)
 * Timeline
-* Project
+* PART I
     * [Conditional Image Generation](../../wiki/Conditional-Image-Generation)
     * [Knowledge Distillation](../../wiki/Knowledge-Distillation-Framework)
     * [Problem Statement](../../wiki/Problem-Statement)
@@ -42,6 +47,7 @@ trainable parameters. Its official PyTorch implementation can be found [here](ht
         * [Dataset](../../wiki/CIFAR10)
         * [Teacher Network](../../wiki/Teacher-Network)
         * [Student Network](../../wiki/Student-Network)
+* PART II
 * Code
     * Getting Started
     * Training
