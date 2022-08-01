@@ -198,8 +198,9 @@ class DiStyleGAN(object):
             test_labels_path = Path(checkpoint, 'labels.pt')
             test_z_path = Path(checkpoint, 'noise.pt')
             try:
-                self.test_labels = torch.load(test_labels_path).to(self.device)
-                self.test_z = torch.load(test_z_path).to(self.device)
+                self.test_labels = torch.load(
+                    test_labels_path, map_location=self.device)
+                self.test_z = torch.load(test_z_path, map_location=self.device)
             except FileNotFoundError:
                 print("[ERROR] Wrong checkpoint path or files don\'t exist.")
                 exit(1)
@@ -244,8 +245,10 @@ class DiStyleGAN(object):
             optG_path = Path(checkpoint, 'optimizerG.pt')
             optD_path = Path(checkpoint, 'optimizerD.pt')
             try:
-                optimizerG.load_state_dict(torch.load(optG_path))
-                optimizerD.load_state_dict(torch.load(optD_path))
+                optimizerG.load_state_dict(torch.load(
+                    optG_path, map_location=self.device))
+                optimizerD.load_state_dict(torch.load(
+                    optD_path, map_location=self.device))
             except FileNotFoundError:
                 print("[ERROR] Wrong checkpoint path or files don\'t exist.")
                 exit(1)
@@ -347,6 +350,8 @@ class DiStyleGAN(object):
                                    adversarial losses in the current update
 
         """
+        self.netG.train()
+
         for param in self.netD.parameters():
             param.requires_grad = False
 
@@ -600,6 +605,7 @@ class DiStyleGAN(object):
 
         all_images = []
         for l in label:
+            print(f"Generating images for label {l}...")
             images = torch.Tensor()
             labels = torch.zeros(batch_size, 10).to(self.device)
             if l == "random":
