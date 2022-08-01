@@ -2,8 +2,8 @@
 the proposed GAN for conditional image generation.
 
 The Generator takes as input a random noise vector and the one-hot encoding
-for the class condition. It generates a 32x32 image using both residual blocks
-and upsample blocks. 
+for the class condition. It generates a 32x32 image using both residual and 
+upsample blocks. 
 
 The Discriminator takes as input images, and their corresponding conditions
 (labels), and validates their authenticity. In addition, it returns a list
@@ -88,7 +88,7 @@ class Generator(nn.Module):
     - ngf (int) : number of generator filters
     - z_dim (int) : noise dimension
     - c_dim (int) : condition dimension
-    - project_dim (int, optional) : dimension to project the input condition 
+    - project_dim (int, optional) : dimension to project the input noise vector 
                                     (Default: 128)
     - nc (int, optional) : number of channels of the output (Default: 3)
     """
@@ -103,7 +103,7 @@ class Generator(nn.Module):
             - z_dim (int) : noise dimension
             - c_dim (int) : condition dimension
             - project_dim (int, optional) : dimension to project the input 
-                                            condition (Default: 128)
+                                            noise vector (Default: 128)
             - nc (int, optional) : number of channels of the output 
                                    (Default: 3)
         """
@@ -139,10 +139,10 @@ class Generator(nn.Module):
         """Define the Generator module."""
         ngf = self.ngf
 
-        in_dim = self.z_dim + self.project_dim
+        in_dim = self.c_dim + self.project_dim
 
         self.project = nn.Sequential(
-            nn.Linear(self.c_dim, self.project_dim * 2, bias=False),
+            nn.Linear(self.z_dim, self.project_dim * 2, bias=False),
             nn.BatchNorm1d(self.project_dim * 2),
             nn.GLU(1))
 
@@ -169,8 +169,8 @@ class Generator(nn.Module):
             - z (Tensor) : random noise vector
             - c (Tensor) : condition (one-hot encoding)
         """
-        h = self.project(c)
-        in_code = torch.cat((z, h), 1)  # (z_dim+project_dim) x 1
+        z_p = self.project(z)
+        in_code = torch.cat((z_p, c), 1)  # (project_dim+c_dim) x 1
 
         h_code = self.fc(in_code)
         h_code = h_code.view(-1, self.ngf, 4, 4)  # ngf x 4 x 4
@@ -197,7 +197,8 @@ class Discriminator(nn.Module):
     Args:
     - ndf (int) : number of discriminator filters
     - c_dim (int) : condition dimension
-    - project_dim (int, optional) : dimension to project the input condition 
+    - project_dim (int, optional) : dimension to project the features before 
+                                    concatenating them with the input condition
                                     (Default: 128)
     - nc (int, optional) : number of channels of the output (Default: 3)
     """
@@ -210,8 +211,9 @@ class Discriminator(nn.Module):
         Args:
             - ndf (int) : number of discriminator filters
             - c_dim (int) : condition dimension
-            - project_dim (int, optional) : dimension to project the input 
-                                            condition (Default: 128)
+            - project_dim (int, optional) : dimension to project the features 
+                                            before concatenating them with the 
+                                            input condition (Default: 128)
             - nc (int, optional) : number of channels of the output 
                                    (Default: 3)
         """
@@ -261,25 +263,15 @@ class Discriminator(nn.Module):
                 nn.LeakyReLU(negative_slope=0.2, inplace=True))
         ])
 
+        self.flatten = nn.Flatten()
+
         self.project = nn.Sequential(
             spectral_norm(
-                nn.Linear(self.c_dim, self.project_dim * 2, bias=False)),
+                nn.Linear(self.ndf*4*2*2, self.project_dim * 2, bias=False)),
             nn.GLU(1)
         )
 
-        self.output = nn.Sequential(
-            spectral_norm(nn.Conv2d(
-                in_channels=self.ndf * 4 + self.project_dim,
-                out_channels=self.ndf * 4,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-                bias=True
-            )),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-
-            self.conv4x4(self.ndf * 4, 1)  # 1 x 1 x 1
-        )
+        self.output = nn.Linear(self.project_dim + self.c_dim, 1, bias=False)
 
     def forward(self, x: torch.Tensor,
                 c: torch.Tensor) -> "Tuple[torch.Tensor, list]":
@@ -294,9 +286,10 @@ class Discriminator(nn.Module):
             x = block(x)
             features.append(x)
 
-        h = self.project(c).view(-1, self.project_dim, 1, 1)
-        h = h.repeat(1, 1, 2, 2)
+        c = c.view(-1, self.c_dim)
+        x = self.flatten(x)
+        h = self.project(x)
 
-        h = torch.cat((h, x), 1)
+        h = torch.cat((h, c), 1)
 
         return self.output(h), features
