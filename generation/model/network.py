@@ -155,7 +155,7 @@ class Generator(nn.Module):
         self.upsample2 = self.upBlock(ngf // 2, ngf // 4)
         self.upsample3 = self.upBlock(ngf // 4, ngf // 8)
 
-        self.residual = self._make_layer(ResBlock, ngf // 8, 3)
+        # self.residual = self._make_layer(ResBlock, ngf // 8, 3)
 
         self.img = nn.Sequential(
             conv3x3(ngf // 8, self.nc),
@@ -179,7 +179,7 @@ class Generator(nn.Module):
         out_code = self.upsample2(out_code)  # ngf//4 x 16 x 16
         out_code = self.upsample3(out_code)  # ngf//8 x 32 x 32
 
-        out_code = self.residual(out_code)  # ngf//8 x 32 x 32
+        # out_code = self.residual(out_code)  # ngf//8 x 32 x 32
 
         img = self.img(out_code)  # 3 x 32 x 32
 
