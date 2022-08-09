@@ -1,0 +1,37 @@
+body {
+    background-color: #B4B5BB;
+}
+
+input[type="checkbox"]:checked+.btn {
+    background: #484848 !important;
+}
+
+.btn-secondary {
+    min-width: 50%;
+    margin: 5px 0 0 50%;
+}
+
+.btn-primary {
+    max-width: 30%;
+    margin: 5% 0 0 25%;
+    background-color: #484848;
+    border-color: #484848;
+}
+
+.btn-primary:hover {
+    background-color: #696868;
+    border-color: #484848;
+}
+
+
+.generated {
+    width: 40%;
+    margin-left: 20%;
+    margin-top: 10px;
+}
+
+#header {
+    text-align: center;
+    background-color: #5B5B5B;
+    color: whitesmoke;
+}
