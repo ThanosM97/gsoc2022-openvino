@@ -28,9 +28,9 @@ class DiStyleGAN(object):
         - c_dim (int, optional) : condition dimension (Default: 10)
         - z_dim (int, optional) : noise dimension (Default: 512)
         - ngf (int, optional) : number of generator filters in the first
-                                convolutional layer (Default: 64)
+                                convolutional layer (Default: 256)
         - ndf (int, optional) : number of discriminator filters in the first
-                                convolutional layer (Default: 32)
+                                convolutional layer (Default: 128)
         - lambda_pixel (float, optional) : weight for the pixel loss of the
                                            Generator (Default: 0.2)
         - lambda_ganG (float, optional) : weight for the adversarial
@@ -55,8 +55,8 @@ class DiStyleGAN(object):
         self,
         c_dim: int = 10,
         z_dim: int = 512,
-        ngf: int = 64,
-        ndf: int = 32,
+        ngf: int = 256,
+        ndf: int = 128,
         lambda_pixel: float = 0.2,
         lambda_ganG: float = 1e-2,
         lambda_ganD: float = 0.2,
@@ -72,9 +72,9 @@ class DiStyleGAN(object):
         - c_dim (int, optional) : condition dimension (Default: 10)
         - z_dim (int, optional) : noise dimension (Default: 512)
         - ngf (int, optional) : number of generator filters in the first
-                                convolutional layer (Default: 64)
+                                convolutional layer (Default: 256)
         - ndf (int, optional) : number of discriminator filters in the first
-                                convolutional layer (Default: 32)
+                                convolutional layer (Default: 128)
         - lambda_pixel (float, optional) : weight for the pixel loss of the
                                            Generator (Default: 0.2)
         - lambda_ganG (float, optional) : weight for the adversarial
@@ -391,8 +391,8 @@ class DiStyleGAN(object):
         dataset: str,
         save: str,
         real_dataset: str = None,
-        epochs: int = 200,
-        batch_size: int = 32,
+        epochs: int = 150,
+        batch_size: int = 128,
         gstep: int = 10,
         lr_G: float = 0.0002,
         lr_D: float = 0.0002,
@@ -414,9 +414,9 @@ class DiStyleGAN(object):
                                              downloaded and saved in the parent
                                              directory of input `dataset` path)
             - epochs (int, optional) : number of training epochs
-                                       (Default: 200)
+                                       (Default: 150)
             - batch_size (int, optional) : number of samples per batch
-                                          (Default: 32)
+                                          (Default: 128)
             - gstep (int, optional) : the number of discriminator updates
                                       after which the generator is updated
                                       using the full loss (Default: 10)
