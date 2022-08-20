@@ -60,7 +60,7 @@ def home():
     # Generate random images
     distylegan = DiStyleGAN()
     images = distylegan.generate(
-        "checkpoint", nsamples=nsamples, label=label).cpu()
+        "../checkpoint", nsamples=nsamples, label=label).cpu()
     transform = T.ToPILImage()
 
     # Create a grid of images for each selected class
