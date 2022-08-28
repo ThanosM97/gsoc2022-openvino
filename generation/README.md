@@ -150,3 +150,89 @@ Optional arguments about the training procedure:
                         downloaded and saved in the parent directory 
                         of input `dataset` path)
 ```                        
+
+### Image Generation
+Download the weights of our pre-trained model from [here](https://drive.google.com/file/d/1Bjr7sQhVQzkYaIOVpx4KaBP3OyRxT5h1/view?usp=sharing) and extract the zip file in the root directory of our repository. Then, you can generate images using the following options:
+
+* Python
+```python
+from distylegan import DiStyleGAN
+model = DiStyleGAN()
+images= model.generate(
+    checkpoint_path="../checkpoint", 
+    nsamples=100,
+    label=[0, 3, 7] # or label=x (int in range [0,9]), label=None
+    save="synthetic-samples",
+    batch_size=32
+)
+```
+
+* Command line
+```
+$ python distylegan.py generate -h
+usage: distylegan.py generate [-h] --checkpoint_path CHECKPOINT_PATH --nsamples NSAMPLES --save SAVE 
+[--label [{0,1,2,3,4,5,6,7,8,9} ...]] [--batch_size BATCH_SIZE]
+
+options:
+  -h, --help            show this help message and exit
+
+Required arguments for the generation procedure:
+  --checkpoint_path CHECKPOINT_PATH
+                        Path to previous checkpoint (the directory 
+                        must contain the generator.pt and 
+                        config.json files)
+  --nsamples NSAMPLES   Number of samples to generate per label
+  --save SAVE           Path to save the generated images to
+
+Optional arguments about the generation procedure:
+  --label [{0,1,2,3,4,5,6,7,8,9} ...]
+                        Class label(s) for the samples (Default: 
+                        None, random labels) --> e.g. --label 0 3 7
+  --batch_size BATCH_SIZE
+                        Number of samples per batch (Default: 32)
+```
+* Using the flask webapp by running the command `flask run` inside the [webapp/](https://github.com/ThanosM97/gsoc2022-openvino/tree/main/webapp) directory of our repository. Then following the link displayed in the command line (e.g. http://127.0.0.1:5000/), you will be presented with the following interface where you can generate images.
+
+<p align="center">
+<img src="https://user-images.githubusercontent.com/41332813/187073322-dd8943fe-50f5-4e77-9ca7-d3d940df7a5a.png" alt="webapp" width="600"/>
+</p>
+<p align="center"> The interface of our webapp for image generation. </p>
+
+
+### Qualitative Evaluation
+
+* Evaluate the progress of training using the [gifmaker.py](https://github.com/ThanosM97/gsoc2022-openvino/blob/main/generation/gifmaker.py) script.
+```
+$ python gifmaker.py -h
+usage: gifmaker.py [-h] -p PATH -s SAVE [-d DURATION]
+
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  Path to the "images/" directory from training.
+  -s SAVE, --save SAVE  Filename for the .gif file.
+  -d DURATION, --duration DURATION
+                        GIF duration in seconds.
+```
+
+* Evaluate the diversity of DiStyleGAN's samples using the t-SNE algorithm
+```
+$ python tsne.py -h
+usage: tsne.py [-h] -p PATH -f FILENAME -n NSAMPLES [-t TITLE] [-b BATCH_SIZE]
+
+t-SNE visualization of generated samples
+
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  Path to the directory of the generated images. The directory should have the following format:
+                        dir/{class-0, class-1, ...}/image_X.png)
+  -f FILENAME, --filename FILENAME
+                        Filename for the .png file.
+  -n NSAMPLES, --nsamples NSAMPLES
+                        Number of samples to use from each class.
+  -t TITLE, --title TITLE
+                        Title for the image.
+  -b BATCH_SIZE, --batch_size BATCH_SIZE
+                        Number of samples per batch.
+```
+
+For more information about the evaluation see the corresponding [wiki page](https://github.com/ThanosM97/gsoc2022-openvino/wiki/Evaluation).
