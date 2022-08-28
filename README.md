@@ -47,12 +47,11 @@ The goal of the second part of the project is to evaluate the performance of the
         * [Dataset](../../wiki/CIFAR10)
         * [Teacher Network](../../wiki/Teacher-Network)
         * [Student Network](../../wiki/Student-Network)
+    * Code
+        * [Training](../../wiki/Training)
+        * [Image Generation](../../wiki/Image-Generation)
+        * [Evaluation](../../wiki/Evaluation)        
 * PART II
-* Code
-    * Getting Started
-    * Training
-    * Evaluation
-
 
 
 ## Project Delivarables
