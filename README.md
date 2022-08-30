@@ -54,7 +54,7 @@ The goal of the second part of the project is to evaluate the performance of the
 * PART II
 
 
-## Project Delivarables
+## Project Deliverables
 
 
 ## People
