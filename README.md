@@ -68,7 +68,7 @@ The goal of the second part of the project is to evaluate the performance of the
 * A [webapp](./webapp) for conditional image generation using the pre-trained model
 * Three calibration [datasets](https://drive.google.com/file/d/1e38vn-_VHMcGDkEUvTOUaaX8HuIkDGf9/view?usp=sharing) for model optimization
 * A range of computer vision quantized models for image classification on CIFAR-10
-* Two blogs describing the work done throughout the GSoC period for the development of a class-conditional GAN for synthetic image generation and the quantization of deep learning models using OpenVINO Toolkit
+* Two blogs describing the development of a class-conditional GAN for synthetic image generation and the quantization of deep learning models using OpenVINO Toolkit
 
 ## People
 
