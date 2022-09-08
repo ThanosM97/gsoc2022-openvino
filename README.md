@@ -67,8 +67,8 @@ The goal of the second part of the project is to evaluate the performance of the
 * A pre-trained conditional GAN, DiStyleGAN, to generate images from the CIFAR-10 distribution ( [weights](https://drive.google.com/file/d/1Bjr7sQhVQzkYaIOVpx4KaBP3OyRxT5h1/view?usp=sharing) | [information](../../wiki/Student-Network) )
 * A [webapp](./webapp) for conditional image generation using the pre-trained model
 * Three calibration [datasets](https://drive.google.com/file/d/1e38vn-_VHMcGDkEUvTOUaaX8HuIkDGf9/view?usp=sharing) for model optimization
-* A range of computer vision quantized models for image classification on CIFAR-10
-* Two blogs describing the development of a class-conditional GAN for synthetic image generation and the quantization of deep learning models using OpenVINO Toolkit
+* A range of computer vision [quantized models](https://drive.google.com/file/d/1qFV-eE1omAFtpL13z5sIsjQhwJ1wrHwG/view?usp=sharing) for image classification on CIFAR-10
+* Two blogs describing the [development of a class-conditional GAN for synthetic image generation](https://medium.com/openvino-toolkit/train-a-dl-model-for-synthetic-data-generation-for-model-optimization-with-openvino-part-1-314252de7148) and the [quantization of deep learning models using OpenVINO Toolkit](https://medium.com/openvino-toolkit/train-a-dl-model-for-synthetic-data-generation-for-model-optimization-with-openvino-part-2-fe1e0fb68400)
 
 ## People
 
