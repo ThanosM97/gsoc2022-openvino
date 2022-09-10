@@ -36,7 +36,7 @@ The goal of the second part of the project is to evaluate the performance of the
 ## Overview
 
 * [Home](.)
-* Timeline
+* [Timeline](../../wiki/Timeline)
 * PART I
     * [Conditional Image Generation](../../wiki/Conditional-Image-Generation)
     * [Knowledge Distillation](../../wiki/Knowledge-Distillation-Framework)
