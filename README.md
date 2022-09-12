@@ -1,5 +1,9 @@
 <h1 align="center"> Google Summer of Code 2022: Train a DL model for synthetic data generation for model optimization </h1>
 
+<p align="center">
+<img src="https://user-images.githubusercontent.com/41332813/178447327-c377251a-6a5b-4945-a021-0078c19edd7b.jpg" alt="GSOC-OpenVINO" width="600"/>
+</p>
+
 This repository hosts the code for the GSoC22 project 
 ["Train a DL model for synthetic data generation for model optimization"](https://summerofcode.withgoogle.com/programs/2022/projects/bCmHAPIL), 
 which is implemented under the auspices of Intel's [OpenVINO Toolkit](https://github.com/openvinotoolkit) organization.
